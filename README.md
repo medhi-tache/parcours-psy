@@ -21,7 +21,7 @@ SQLite — données, comptes, sessions et historique
 
 L’adresse de l’API se configure dans `frontend/.env.local` avec `RUST_API_URL`. Elle reste côté serveur Next.js. Les écrans React ne téléchargent pas un état global avant de le filtrer : l’API contrôle le rôle, le dossier et les actions autorisés avant de renvoyer les données. Les réponses aux mutations sont également filtrées.
 
-L’interface est adaptée aux navigateurs sur Windows, macOS, Linux et mobile. Cette version n’est pas un installateur natif Windows/macOS/Linux et ne contient pas encore de client mobile natif. L’architecture retenue suite à la demande est une interface Next.js connectée à une API Rust séparée.
+L’interface est adaptée aux navigateurs sur Windows, macOS, Linux et mobile. Un client macOS Apple Silicon est également fourni (voir ci-dessous). Les versions Windows/Linux restent accessibles dans le navigateur ; il n’y a pas encore de client mobile natif. L’architecture retenue suite à la demande est une interface Next.js connectée à une API Rust séparée.
 
 ## Lancer sur cet ordinateur
 
@@ -178,3 +178,28 @@ Enregistrer une curatelle ne crée aucun compte curateur, n’attribue aucun acc
 L’API `PUT /api/patients/{id}/protection` est réservée au médecin et à l’équipe affectés au dossier. Les informations de curatelle sont renvoyées au patient concerné et à ses professionnels affectés. Elles ne sont pas incluses dans les réponses destinées aux pharmacies et aux infirmiers à domicile.
 
 Les règles affichées renvoient à [Service Public — santé sous tutelle ou curatelle](https://www.service-public.gouv.fr/particuliers/vosdroits/F33899) et [curatelle d’une personne majeure](https://www.service-public.gouv.fr/particuliers/vosdroits/F2094). Le type de curatelle ne suffit pas à déterminer le périmètre d’intervention : l’application conserve les éléments saisis d’après la décision, sans les déduire automatiquement.
+
+
+## Client macOS Apple Silicon
+
+Le client **Parcours Psy.app** fonctionne sur macOS 14 ou supérieur, sur un Mac Apple Silicon (M1 et suivants). Décompresser l’archive, déplacer l’application dans Applications si souhaité, puis l’ouvrir. Node.js, l’API Rust et l’interface Next.js sont embarqués : aucun terminal ou outil de développement n’est nécessaire à l’utilisation. C’est une compilation locale avec signature ad hoc, sans certificat Developer ID ni notarisation Apple.
+
+Le premier lancement propose la création d’un administrateur. Les données du client sont conservées dans `~/Library/Application Support/Parcours Psy/parcours.sqlite`, avec des permissions privées. Elles sont **distinctes** de la base `data/parcours.sqlite` du projet navigateur, qui n’est pas copiée automatiquement. L’application n’embarque aucune base patient ni aucun compte. Le menu **Parcours Psy → Ouvrir le dossier de données** donne accès à la base et aux journaux de démarrage. Les services écoutent uniquement sur l’adresse de boucle locale, sur des ports disponibles, et sont arrêtés lorsque l’application quitte.
+
+Le menu **Connexion à un serveur…** permet de saisir l’adresse HTTPS d’une interface Next.js Parcours Psy déployée ultérieurement (pas l’adresse brute de l’API Rust). Il ne déploie aucun serveur. L’option **Utiliser le mode local** revient à la base de ce Mac. Aucun transfert de données entre les deux modes n’est effectué.
+
+Pour reconstruire depuis les sources sur un Mac Apple Silicon avec Xcode Command Line Tools, Rust et Node.js installés et les dépendances téléchargées :
+
+```sh
+node desktop/macos/build.mjs
+```
+
+Le script exécute les tests Rust, compile l’API et le lanceur Swift/AppKit/WebKit, crée une sortie Next.js standalone séparée `.next-macos`, copie les composants d’exécution et notices de licence, puis signe et vérifie le bundle. Il crée par défaut `../Parcours Psy.app`. Le dossier `.next` du navigateur est conservé. La variable `PARCOURS_DESKTOP_DATA` sert uniquement aux essais avec un dossier de données séparé et des cookies non persistants.
+
+## Avocat, différend avec le curateur et premier entretien
+
+Le patient peut demander un avocat sans validation préalable du médecin ou du curateur dans l’application. Deux options sont disponibles : signaler un différend avec son curateur et demander le règlement intégral du premier entretien sur ses fonds personnels. Un différend ne peut pas être associé à une demande d’accompagnement par le curateur concerné. Ces informations restent des déclarations du patient, sans qualification de faute ni décision juridique.
+
+La demande n’est jamais envoyée au curateur. Le patient doit confirmer explicitement son enregistrement pour son équipe affectée ; l’espace ne sert pas à héberger les échanges confidentiels avec l’avocat. Il n’existe pas encore de compte avocat, de messagerie confidentielle avocat-patient, de connexion bancaire ou de circuit de règlement. Aucun montant de solde bancaire n’est demandé. La disponibilité des fonds, les honoraires et les modalités applicables doivent être confirmés avec l’avocat ; l’existence de fonds suffisants ne crée pas une garantie de prise en charge. Aucun débit ni autorisation bancaire ne découle de la case cochée.
+
+Sources : [choix de l’avocat dans une procédure de protection, article 1214 du CPC, rappelé par la Cour de cassation](https://www.courdecassation.fr/publications/bulletin-des-arrets-des-chambres-civiles/numero-2-fevrier-2026/majeur-protege), [conflit d’intérêts et curateur ad hoc, article 455](https://www.legifrance.gouv.fr/codes/section_lc/LEGITEXT000006070721/LEGISCTA000006181868/), [assistance pour certains actes et actions en justice, articles 467 à 472](https://www.legifrance.gouv.fr/codes/section_lc/LEGITEXT000006070721/LEGISCTA000006165757/), [consultations gratuites](https://www.service-public.gouv.fr/particuliers/vosdroits/F20706).

@@ -26,3 +26,10 @@ node_modules/
 *.log
 .DS_Store
 Thumbs.db
+
+# Applications macOS et fichiers de compilation dédiés
+/desktop/macos/build/
+/frontend/.next-macos/
+/frontend/tsconfig.macos.json
+*.app/
+*.dmg

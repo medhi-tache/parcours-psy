@@ -1434,6 +1434,56 @@ mod rights_access_tests {
     use super::tests::{account, fixture, http};
     use super::*;
     #[tokio::test]
+    async fn curatorship_dispute_and_first_consultation_are_requests_without_payment_authorization()
+    {
+        let (app, d) = fixture().await;
+        let (_, cookie) = account(&app, "patient", Some(d.patients[0].id.clone()), vec![]);
+        let mut body = serde_json::json!({"program_id":d.programs[0].id,"lawyer":true,"independent_opinion":false,"message":"Différend fictif avec mon curateur.","share_with_team":true,"curatorship_dispute":true,"first_consultation_own_funds_requested":true});
+        assert_eq!(
+            http(
+                &app,
+                "POST",
+                "/api/rights",
+                Some(&cookie),
+                Some(body.clone())
+            )
+            .await
+            .0,
+            StatusCode::OK
+        );
+        let saved = read(&app.db.lock().unwrap()).unwrap();
+        assert!(saved.rights_requests[0].curatorship_dispute);
+        assert!(saved.rights_requests[0].first_consultation_own_funds_requested);
+        assert!(!saved.rights_requests[0].curator_assistance_requested);
+        assert!(saved.rights_requests[0].updates.is_empty());
+        body["include_curator"] = true.into();
+        assert_eq!(
+            http(
+                &app,
+                "POST",
+                "/api/rights",
+                Some(&cookie),
+                Some(body.clone())
+            )
+            .await
+            .0,
+            StatusCode::BAD_REQUEST
+        );
+        body["include_curator"] = false.into();
+        body["lawyer"] = false.into();
+        body["independent_opinion"] = true.into();
+        assert_eq!(
+            http(&app, "POST", "/api/rights", Some(&cookie), Some(body))
+                .await
+                .0,
+            StatusCode::BAD_REQUEST
+        );
+        assert_eq!(
+            read(&app.db.lock().unwrap()).unwrap().rights_requests.len(),
+            1
+        );
+    }
+    #[tokio::test]
     async fn patient_can_request_assistance_without_medical_approval_and_other_roles_cannot_read_it(
     ) {
         let (app, d) = fixture().await;

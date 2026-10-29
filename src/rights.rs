@@ -18,6 +18,10 @@ pub struct RightsRequest {
     pub protection_id: Option<String>,
     #[serde(default)]
     pub protection_version: Option<usize>,
+    #[serde(default)]
+    pub curatorship_dispute: bool,
+    #[serde(default)]
+    pub first_consultation_own_funds_requested: bool,
 }
 #[derive(Clone, Serialize, Deserialize)]
 pub struct RightsUpdate {
@@ -36,6 +40,10 @@ pub struct Create {
     share_with_team: bool,
     #[serde(default)]
     include_curator: bool,
+    #[serde(default)]
+    curatorship_dispute: bool,
+    #[serde(default)]
+    first_consultation_own_funds_requested: bool,
 }
 #[derive(Deserialize)]
 pub struct Update {
@@ -61,6 +69,12 @@ pub async fn create(
         if !i.lawyer && !i.independent_opinion {
             return Err(invalid("Choisissez une demande d’accompagnement."));
         }
+        validate_lawyer_request(
+            i.lawyer,
+            i.curatorship_dispute,
+            i.include_curator,
+            i.first_consultation_own_funds_requested,
+        )?;
         if !i.share_with_team {
             return Err(invalid("Confirmez que cette demande peut être consultée par l’équipe affectée à votre dossier."));
         }
@@ -96,6 +110,8 @@ pub async fn create(
             curator_assistance_requested: i.include_curator,
             protection_id,
             protection_version,
+            curatorship_dispute: i.curatorship_dispute,
+            first_consultation_own_funds_requested: i.first_consultation_own_funds_requested,
         };
         audit(
             d,
@@ -105,6 +121,20 @@ pub async fn create(
         d.rights_requests.push(r);
         Ok(())
     })?))
+}
+fn validate_lawyer_request(
+    lawyer: bool,
+    dispute: bool,
+    curator: bool,
+    own_funds: bool,
+) -> Result<()> {
+    if (dispute || own_funds) && !lawyer {
+        return Err(invalid("Ces options nécessitent une demande d’avocat."));
+    }
+    if dispute && curator {
+        return Err(invalid("Pour un différend avec le curateur, choisissez un accompagnement indépendant sans ce curateur."));
+    }
+    Ok(())
 }
 pub async fn update(
     State(app): State<App>,

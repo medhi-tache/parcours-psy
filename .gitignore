@@ -1,0 +1,28 @@
+# Données locales et sauvegardes
+/data/
+*.sqlite*
+*.db
+*.db-*
+*.db3
+*.bak
+
+# Compilation Rust et dépendances / sorties Next.js
+/target/
+node_modules/
+.next/
+*.tsbuildinfo
+
+# Configuration locale et clés privées
+.env
+.env.*
+!.env.example
+!.env.sample
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Fichiers temporaires
+*.log
+.DS_Store
+Thumbs.db
